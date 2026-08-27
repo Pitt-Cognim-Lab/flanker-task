@@ -1,6 +1,6 @@
 // Location of the files owned and hosted by this lab.
 var repo_site =
-  "https://github.com/Pitt-Cognim-Lab/flanker-task/";
+  "https://Pitt-Cognim-Lab.github.io/flanker-task/";
 
 /*
  * Number of repetitions for each of the four stimuli.
