@@ -7,7 +7,7 @@ var repo_site =
  *
  * 60 repetitions × 4 stimuli = 240 test trials.
  */
-var reps_per_trial_type = 60;
+var reps_per_trial_type = 1;
 
 /* Welcome screen */
 var welcome = {
