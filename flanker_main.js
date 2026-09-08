@@ -6,7 +6,7 @@ var repo_site =
  * Number of repetitions for each of the four stimuli.
  * 60 repetitions x 4 stimuli = 240 main-test trials.
  */
-var reps_per_trial_type = 1;
+var reps_per_trial_type = 60;
 
 /* Timing and practice limits */
 var response_window_seconds = 1.5;
