@@ -8,6 +8,12 @@ var repo_site =
  */
 var reps_per_trial_type = 1;
 
+/* Timing and practice limits */
+var response_window_seconds = 1.5;
+var trial_duration_ms = response_window_seconds * 1000;
+var max_practice_repeats = 3;
+var practice_repeat_count = 0;
+
 /* Welcome screen */
 var welcome = {
   type: "html-keyboard-response",
@@ -26,11 +32,41 @@ var instructions = {
     "<img src='" + repo_site + "img/inc1.png' alt='Example arrows'>" +
     "<p>Press the left arrow key if the middle arrow points left.</p>" +
     "<p>Press the right arrow key if the middle arrow points right.</p>" +
-    "<p>You will begin with four practice trials.</p>" +
-    "<p>Press any key to begin the practice.</p>",
+    "<p>Press any key to continue.</p>",
 
   post_trial_gap: 1000,
   data: { phase: "instructions" }
+};
+
+/* Practice-phase information */
+var practice_information = {
+  type: "html-keyboard-response",
+
+  stimulus: function () {
+    return (
+      "<p>You will now complete a practice phase.</p>" +
+      "<p>You will have a maximum of <strong>" +
+      response_window_seconds +
+      " seconds</strong> to respond on each trial.</p>" +
+      "<p>Each practice round contains four trials.</p>" +
+      "<p>You may repeat the four-trial practice up to " +
+      "<strong>" + max_practice_repeats +
+      " times</strong>.</p>" +
+      "<p>Press any key to continue.</p>"
+    );
+  },
+
+  data: { phase: "practice_information" }
+};
+
+/* Displayed before the initial practice and every repeat. */
+var practice_ready = {
+  type: "html-keyboard-response",
+  stimulus:
+    "<p style='font-size:40px;'><strong>GET READY</strong></p>" +
+    "<p>Press any key to begin the practice.</p>",
+  post_trial_gap: 1000,
+  data: { phase: "practice_ready" }
 };
 
 /* Four possible flanker stimuli */
@@ -91,12 +127,13 @@ var practice_trials = {
     {
       type: "image-keyboard-response",
       choices: [37, 39],
-      trial_duration: 1500,
+      trial_duration: trial_duration_ms,
       stimulus: jsPsych.timelineVariable("stimulus"),
       data: jsPsych.timelineVariable("data"),
 
       on_finish: function (data) {
         data.phase = "practice";
+        data.practice_round = practice_repeat_count + 1;
         scoreFlankerTrial(data);
       },
 
@@ -118,17 +155,53 @@ var practice_trials = {
 var practice_choice = {
   type: "html-keyboard-response",
 
-  stimulus:
-    "<p>Press <strong>R</strong> to repeat the four practice trials.</p>" +
-    "<p>Press <strong>C</strong> to continue to the main task.</p>",
+  stimulus: function () {
+    var repeats_remaining =
+      max_practice_repeats - practice_repeat_count;
 
-  choices: [82, 67],
-  data: { phase: "practice_choice" }
+    if (repeats_remaining > 0) {
+      return (
+        "<p>Press <strong>R</strong> to repeat the four " +
+        "practice trials.</p>" +
+        "<p>Press <strong>C</strong> to continue to the " +
+        "main task.</p>" +
+        "<p>Practice repeats remaining: " +
+        repeats_remaining + "</p>"
+      );
+    }
+
+    return (
+      "<p>You have completed all available practice rounds.</p>" +
+      "<p>Press <strong>C</strong> to continue to the " +
+      "main task.</p>"
+    );
+  },
+
+  choices: function () {
+    if (practice_repeat_count < max_practice_repeats) {
+      return [82, 67];
+    }
+
+    return [67];
+  },
+
+  data: { phase: "practice_choice" },
+
+  on_finish: function (data) {
+    data.practice_round = practice_repeat_count + 1;
+    data.repeat_selected =
+      data.key_press === 82 &&
+      practice_repeat_count < max_practice_repeats;
+
+    if (data.repeat_selected) {
+      practice_repeat_count += 1;
+    }
+  }
 };
 
 /* Repeat the practice only when R was pressed. */
 var practice_loop = {
-  timeline: [practice_trials, practice_choice],
+  timeline: [practice_ready, practice_trials, practice_choice],
 
   loop_function: function (practiceData) {
     var choice = practiceData
@@ -136,7 +209,7 @@ var practice_loop = {
       .last(1)
       .values()[0];
 
-    return choice && choice.key_press === 82;
+    return choice && choice.repeat_selected === true;
   }
 };
 
@@ -155,7 +228,7 @@ var test = {
     {
       type: "image-keyboard-response",
       choices: [37, 39],
-      trial_duration: 1500,
+      trial_duration: trial_duration_ms,
       stimulus: jsPsych.timelineVariable("stimulus"),
       data: jsPsych.timelineVariable("data"),
 
@@ -232,6 +305,7 @@ var timeline = [];
 
 timeline.push(welcome);
 timeline.push(instructions);
+timeline.push(practice_information);
 timeline.push(practice_loop);
 timeline.push(main_task_start);
 timeline.push(test);
